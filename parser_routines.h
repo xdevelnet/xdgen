@@ -7,8 +7,10 @@ char *find_function_name_behind_round_bracket (char *ptr) {
 
 char *flush_normalized_function_type (char *function_name_ptr, char *top_break) {
 	char *flying_pointer = function_name_ptr;
-	while (*flying_pointer != '>' and *flying_pointer != ';' and *flying_pointer != '}' and flying_pointer != top_break) flying_pointer--;
-	//TODO: I should check if someone put pure preprocessor statement behind funtion
+	while (*flying_pointer != '>' and *flying_pointer != ';' and *flying_pointer != '}'
+		   and flying_pointer != top_break and *flying_pointer != '#') flying_pointer--;
+	if (*flying_pointer == '#') flying_pointer = strchr(flying_pointer, LINEBREAK_CHAR);
+
 	char space_flag = 1;
 	while (++flying_pointer != function_name_ptr) {
 		if (*flying_pointer == ASTERISK_CHAR) break; //let's handle asterisks inside separated loop
@@ -91,4 +93,14 @@ char *find_doc_block_ending (char *start) {
 		}
 	}
 	return start;
+}
+
+
+
+void flush_desc_documentation (char *after_above, char *doc_block_ending, size_t *arg_desc, size_t *desc) {
+	char *floating_pointer = strstr(after_above, double_slash) + sizeof(double_slash) - 1;
+
+	while (floating_pointer < doc_block_ending) {
+
+	}
 }

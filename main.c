@@ -45,11 +45,12 @@ int main(int argc, char **argv) {
 		char *fname;
 		size_t filesize;
 		char *fileptr;
-		char *search_from;
 
 		char *above_word;
+		char *after_above;
 		char *round_bracket;
 		char *function_name;
+		char *doc_block_ending; //also used as next search pointer for 'above'
 	} cache;
 	function_seek doc_cache;
 
@@ -67,23 +68,23 @@ int main(int argc, char **argv) {
 			continue;
 		}
 		cache.fileptr = try_readonly_mmap(cache.fd, cache.filesize);
-		cache.search_from = cache.fileptr;
+		cache.doc_block_ending = cache.fileptr;
 
 		while (forever) {
-			cache.above_word = strstr(cache.search_from, search_above_string);
+			cache.above_word = strstr(cache.doc_block_ending, search_above_string);
 			if (cache.above_word == NULL or cache.above_word > cache.fileptr + cache.filesize) {
 				erase_area(&doc_cache, sizeof(doc_cache));
 				break;
 			}
 
-			cache.round_bracket = strchr_backward(cache.above_word, ROUND_BRACKET_CHAR, cache.search_from);
-			if (cache.round_bracket <= cache.search_from) {
+			cache.round_bracket = strchr_backward(cache.above_word, ROUND_BRACKET_CHAR, cache.doc_block_ending);
+			if (cache.round_bracket <= cache.doc_block_ending) {
 				erase_area(&doc_cache, sizeof(doc_cache));
 				break;
 			}
 
 			cache.function_name = find_function_name_behind_round_bracket(cache.round_bracket);
-			if (cache.function_name <= cache.search_from) {
+			if (cache.function_name <= cache.doc_block_ending) {
 				erase_area(&doc_cache, sizeof(doc_cache));
 				break;
 			}
@@ -93,7 +94,7 @@ int main(int argc, char **argv) {
 			doc_cache.infinity_arg = 0;
 
 			doc_cache.return_type = storage_current;
-			if (flush_normalized_function_type(cache.function_name, cache.search_from) == NULL) {
+			if (flush_normalized_function_type(cache.function_name, cache.doc_block_ending) == NULL) {
 				erase_area(&doc_cache, sizeof(doc_cache));
 				break;
 			}
@@ -105,7 +106,14 @@ int main(int argc, char **argv) {
 
 			doc_cache.arg_values = storage_current;
 			flush_null_separated_args(cache.round_bracket, &(doc_cache.arg_count));
-			cache.search_from = find_doc_block_ending(strchr(cache.above_word + sizeof(search_above_string) - 1, '\n'));
+			cache.after_above = strchr(cache.above_word + sizeof(search_above_string) - 1, '\n'); //yea, user can put
+			//comments for documentation after 'above' word.
+			cache.doc_block_ending = find_doc_block_ending(cache.after_above);
+
+			doc_cache.arg_desc = cache.above_word-cache.fileptr;
+			doc_cache.desc = cache.after_above-cache.fileptr;
+
+			//flush_documentation(cache.after_above, cache.doc_block_ending, &doc_cache.arg_desc, &doc_cache.desc);
 
 			put_to_doc(&doc_cache);
 			erase_area(&doc_cache, sizeof(doc_cache));
@@ -116,8 +124,9 @@ int main(int argc, char **argv) {
 
 	size_t i = 0;
 		while (i < doc_current) {
-			printf("Filename: %s Function name: %s Return type: %s\n", storage+(doc_references+i)->filename,
-				   storage+(doc_references+i)->function_name, storage+(doc_references+i)->return_type );
+			printf("Filename: %s Return type: %s Function name: %s\nAbove ptr: %lu After above ptr: %lu\n\n",
+				   storage+(doc_references+i)->filename, storage+(doc_references+i)->return_type,
+				   storage+(doc_references+i)->function_name, (doc_references+i)->arg_desc, (doc_references+i)->desc );
 			i++;
 		}
 

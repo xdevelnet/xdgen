@@ -8,8 +8,15 @@ int compare_string_ending_equality (char *string, char *ending) {
 	return strcmp(string, ending);
 }
 
+char strpartcmp(char *str, char *part) {
+	while (forever) {
+		if (*part == 0) return 0;
+		if (*(str++) != *(part++)) return 1;
+	}
+}
+
 char *strchr_backward (char *position, const char c, const char *s) {
-	//above
+	//above let's test comments here. HUEHUEHUE
 	//returns a pointer to the first occurrence of the character c before *position in the string *s, or NULL pointer if no character found
 	//1 - pointer to starting character
 	//2 - search character
