@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #include "constants_and_globals.h"
+#include "mem_handling.h"
 #include "routines.h"
 #include "parser_routines.h"
 
@@ -35,7 +36,7 @@ int main(int argc, char **argv) {
 	storage = get_new_memory(storage_space, sizeof(char));
 	unsigned int files_count = parse_cli_and_prepare_file_list(&argc, argv);
 	if (files_count == 0) {
-		fprintf(stderr, "Nothing to parse. Exiting...");
+		fprintf(stderr, "Nothing to parse. Exiting...\n");
 		return EXIT_SUCCESS; //"Nothing to parse" is still result, not critical error. Should I use EXIT_FAILURE?
 	}
 	doc_references = get_new_memory(doc_space, sizeof(function_seek));
@@ -110,10 +111,12 @@ int main(int argc, char **argv) {
 			//comments for documentation after 'above' word.
 			cache.doc_block_ending = find_doc_block_ending(cache.after_above);
 
-			doc_cache.arg_desc = cache.above_word-cache.fileptr;
-			doc_cache.desc = cache.after_above-cache.fileptr;
-
-			//flush_documentation(cache.after_above, cache.doc_block_ending, &doc_cache.arg_desc, &doc_cache.desc);
+			doc_cache.desc = storage_current;
+			flush_desc(cache.after_above, cache.doc_block_ending);
+			doc_cache.arg_desc = storage_current;
+			if (doc_cache.arg_count != 0) flush_arg_desc(cache.after_above, cache.doc_block_ending, doc_cache.arg_count); else {
+				flush_string_to_mem_storage(no_desc_provided);
+			}
 
 			put_to_doc(&doc_cache);
 			erase_area(&doc_cache, sizeof(doc_cache));
@@ -122,12 +125,19 @@ int main(int argc, char **argv) {
 		iterator++;
 	}
 
-	size_t i = 0;
-		while (i < doc_current) {
-			printf("Filename: %s Return type: %s Function name: %s\nAbove ptr: %lu After above ptr: %lu\n\n",
-				   storage+(doc_references+i)->filename, storage+(doc_references+i)->return_type,
-				   storage+(doc_references+i)->function_name, (doc_references+i)->arg_desc, (doc_references+i)->desc );
-			i++;
+	//Here we got all required data. Time to sort it by 1) filenames 2) function names (check out compare function)
+
+	qsort(doc_references, doc_current, sizeof(function_seek), slay_them_all);
+
+	//loop below will be replaced with html generation
+
+	iterator = 0;
+		while (iterator < doc_current) {
+			printf("Filename: %s Return type: %s Function name: %s Args count: %lu\nDesc: %s\nArg desc: %s\n\n",
+				   storage+(doc_references+iterator)->filename, storage+(doc_references+iterator)->return_type,
+				   storage+(doc_references+iterator)->function_name, (doc_references+iterator)->arg_count,
+				   storage+(doc_references+iterator)->desc, storage+(doc_references+iterator)->arg_desc );
+			iterator++;
 		}
 
 	return EXIT_SUCCESS;

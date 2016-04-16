@@ -1,4 +1,6 @@
 #include <dirent.h>
+#include <string.h>
+#include <strings.h>
 
 int compare_string_ending_equality (char *string, char *ending) {
 	size_t stringlen = strlen(string); //TODO: Optimize function performance. Yea, we can avoid iteration over strings twice.
@@ -17,7 +19,8 @@ char strpartcmp(char *str, char *part) {
 
 char *strchr_backward (char *position, const char c, const char *s) {
 	//above let's test comments here. HUEHUEHUE
-	//returns a pointer to the first occurrence of the character c before *position in the string *s, or NULL pointer if no character found
+	// returns a pointer to the       first occurrence of the character c before *position in the string *s,
+	//or NULL pointer if no character found
 	//1 - pointer to starting character
 	//2 - search character
 	//3 - pointer to first character of string
@@ -41,63 +44,6 @@ char *strchr_double_backward (char *position, const char c, const char z, const 
 	}
 }
 
-void *get_new_memory (size_t values, size_t valsize) {
-	void *new_mem = malloc(values*valsize);
-	if (new_mem == NULL) {
-		perror("Failed to obtain new memory");
-		exit(EXIT_FAILURE);
-	}
-	return new_mem;
-}
-
-function_seek *doc_references;
-size_t doc_space = 5;
-size_t doc_current = 0;
-
-void more_doc_if_needed () {
-	if (doc_current == doc_space) {
-		doc_space *= 2;
-		if ((doc_references = realloc(doc_references, sizeof(doc_references)*doc_space)) == NULL) {
-			perror("Failed to get more memory");
-			exit(EXIT_FAILURE);
-		}
-	}
-}
-
-void put_to_doc (function_seek *z) {
-	*(doc_references + doc_current) = *z;
-	doc_current++;
-	more_doc_if_needed();
-}
-
-
-char *storage; //multipurpose octet storage
-size_t storage_space = 4096;
-size_t storage_current = 0;
-
-void more_storage_if_needed() {
-	if (storage_current == storage_space) {
-		storage_space *= 2;
-		if ((storage = realloc(storage, storage_space)) == NULL) {
-			perror("Failed to get more memory");
-			exit(EXIT_FAILURE);
-		}
-	}
-}
-
-void put_to_mem (char value) {
-	*(storage+storage_current++) = value;
-	more_storage_if_needed();
-}
-int get_readonly_descriptor(char *file_addr) {
-	int d = open(file_addr, O_RDONLY);
-	if (d < 0) {
-		perror(file_addr);
-		exit(EXIT_FAILURE);
-	}
-	return d;
-}
-
 size_t get_file_size(int fd) {
 	struct stat sb;
 	if (fstat(fd, &sb) < 0) {
@@ -117,7 +63,7 @@ char *try_readonly_mmap(int file_descriptor, size_t file_size) {
 	return (char *) mmap_result;
 }
 
-void flush_string_to_mem_storage (char *string) {
+void flush_string_to_mem_storage (const char *string) {
 	while (*string != 0) {
 		put_to_mem(*string);
 		string++;
@@ -178,4 +124,12 @@ unsigned int parse_cli_and_prepare_file_list(int *argc, char **argv) {
 void erase_area(void *addr, size_t size) {
 	memset(addr, 0, size);
 	AVOID_MEMSET_OPTIMIZE(addr);
+}
+
+int slay_them_all (const void *a, const void *b) {
+	const function_seek *first_elem = a;
+	const function_seek *second_elem = b;
+	int first_compare = strcasecmp(storage+first_elem->filename, storage+second_elem->filename);
+	if (first_compare != 0) return first_compare;
+	return strcasecmp(storage+first_elem->function_name, storage+second_elem->function_name);
 }

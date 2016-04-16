@@ -1,6 +1,3 @@
-const char search_above_string[] = "//above";
-const char double_slash[] = "//";
-
 #define forever 1
 #define FILE_IS_NOT_BIG_ENOUGH_FOR_PARSING 25
 
@@ -26,3 +23,13 @@ struct function_seek_struct {
     size_t infinity_arg;
 };
 typedef struct function_seek_struct function_seek;
+
+
+//
+// PREPARE HTML
+//
+
+const char search_above_string[] = "//above";
+const char double_slash[] = "//";
+const char no_desc_provided[] = "No description provided!";
+const char args_desc_separator[] = " [ NEXT ] ";

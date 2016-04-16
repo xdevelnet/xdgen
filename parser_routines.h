@@ -64,7 +64,7 @@ void flush_null_separated_args (char *round_bracket, size_t *argc) {
 			continue;
 		}
 		if (we_already_counted == 0) {
-			argc++;
+			++*argc;
 			we_already_counted = 1;
 		}
 		if (*flying_ptr == COMMA_CHAR) {
@@ -97,10 +97,121 @@ char *find_doc_block_ending (char *start) {
 
 
 
-void flush_desc_documentation (char *after_above, char *doc_block_ending, size_t *arg_desc, size_t *desc) {
-	char *floating_pointer = strstr(after_above, double_slash) + sizeof(double_slash) - 1;
+size_t flush_desc (char *after_above, char *doc_block_ending) {
+	size_t desc_bytes_count = 0;
+	char space_flag = 1;
+	char current_char; //avoid multiple dereferencing
+	char *flying_pointer = after_above;
 
-	while (floating_pointer < doc_block_ending) {
+	while (flying_pointer < doc_block_ending) {
+		flying_pointer = strstr(flying_pointer, double_slash) + sizeof(double_slash) - 1;
+		if (flying_pointer >= doc_block_ending or flying_pointer == NULL) break;
+		if (*flying_pointer == LINEBREAK_CHAR) { //empty comment line
+			flying_pointer++;
+			continue;
+		}
+		if (strpartcmp(flying_pointer+1, " -") == 0 and *flying_pointer >= '0' and *flying_pointer <= '9') continue;
+		//we gonna handle such lines with separated funtion
 
+		while (forever) {
+			current_char = *flying_pointer;
+			if (current_char == LINEBREAK_CHAR) {
+				if (space_flag == 0) put_to_mem(SPACE_CHAR);
+				space_flag = 1;
+				break;
+			}
+			if ((current_char == SPACE_CHAR or current_char == TAB_CHAR) and space_flag == 1) {
+				flying_pointer++; //let's drop&chomp redundant tabs or spaces
+				continue;
+			}
+			space_flag = 0;
+			if (current_char == SPACE_CHAR or current_char == TAB_CHAR) {
+				current_char = SPACE_CHAR;
+				space_flag = 1;
+			}
+			put_to_mem(current_char);
+
+			flying_pointer++;
+			desc_bytes_count++;
+		}
 	}
+	if (desc_bytes_count == 0) {
+		flush_string_to_mem_storage("No description provided!");
+	} else {
+		*(storage+storage_current-1) =  0;
+	}
+	return desc_bytes_count;
+}
+
+size_t flush_arg_desc (char *after_above, char *doc_block_ending, size_t args_count) {
+	//AAAAA! COPYPASTING!!
+	//Ok. There is huge piece of code which is similar as in flush_desc. But the thing is, that uniting
+	//cause some bicycles, possible GOTO expressions (say hello to gotophobia), reducing readability of code.
+	//Also, these functions can be much more different in future. If you have some suggestions - feel free
+	//email me or create new issue on github.
+	size_t desc_bytes_count = 0;
+	char space_flag = 1;
+	char current_char; //avoid multiple dereferencing
+	char *flying_pointer = after_above;
+
+	if (args_count == 0) return 0; //who knows what happens if someone use it without checking args_count?
+	size_t real_args_count = 0; //let's check how much args dorumentation we really have
+
+
+	while (flying_pointer < doc_block_ending) {
+		flying_pointer = strstr(flying_pointer, double_slash) + sizeof(double_slash) - 1;
+		if (flying_pointer >= doc_block_ending or flying_pointer == NULL) break;
+		if (*flying_pointer == LINEBREAK_CHAR) { //empty comment line
+			flying_pointer++;
+			continue;
+		}
+		if (strpartcmp(flying_pointer+1, " -") != 0 or *flying_pointer < '0' or *flying_pointer > '9') continue;
+		//TODO: statement above should be rewritten - we need to handle more than 9 args, lol.
+		//...but don't use regular expressions, they are too fat for that purpose
+		if (strtoul(flying_pointer, NULL, 10) - *flying_pointer <= args_count) continue;
+		flying_pointer += 3; //3 means strlen of "0 -" or "1 -". If you (or me) gonna rewrite thing 2 lines above -
+		//don't forget to rewrite this thing
+
+		while (forever) {
+			current_char = *flying_pointer;
+			if (current_char == LINEBREAK_CHAR) {
+				if (desc_bytes_count == 0) flush_string_to_mem_storage(no_desc_provided);
+				flush_string_to_mem_storage(args_desc_separator); storage_current--;
+				//Yes, I can separate with nulls. And then, this should be parsed and reformatted. So, I decided to put
+				//html inside mem at this stage. If you don't like it - just change separator.
+				space_flag = 1;
+				break;
+			}
+			if ((current_char == SPACE_CHAR or current_char == TAB_CHAR) and space_flag == 1) {
+				flying_pointer++; //let's drop&chomp redundant tabs or spaces
+				continue;
+			}
+			space_flag = 0;
+			if (current_char == SPACE_CHAR or current_char == TAB_CHAR) {
+				current_char = SPACE_CHAR;
+				space_flag = 1;
+			}
+			put_to_mem(current_char);
+
+			flying_pointer++;
+			desc_bytes_count++;
+		}
+		real_args_count++;
+		if (real_args_count == args_count) break;
+		desc_bytes_count = 0; //we don't actually need bytes count outside function. But it's still required!
+	}
+	size_t not_enough_args_desc;
+	if (real_args_count < args_count) {
+
+		not_enough_args_desc = args_count - real_args_count;
+		while (not_enough_args_desc > 0) {
+			flush_string_to_mem_storage(no_desc_provided); storage_current--;
+			flush_string_to_mem_storage(args_desc_separator); storage_current--;
+			not_enough_args_desc--;
+		}
+	}
+	put_to_mem(0);
+
+
+	return real_args_count;
 }
