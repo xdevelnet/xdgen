@@ -1,5 +1,4 @@
 #include <dirent.h>
-#include <string.h>
 #include <strings.h>
 
 int compare_string_ending_equality (char *string, char *ending) {
