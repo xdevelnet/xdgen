@@ -1,18 +1,31 @@
+char *check_round_bracket_before_above_word (char *search, char *edge) {
+	while (forever) {
+		if (search < edge) return NULL;
+		if (*search == '=') return NULL;
+		if (*search == ROUND_BRACKET_CHAR) return search;
+		search--;
+	}
+}
+
 char *find_function_name_behind_round_bracket (char *ptr) {
 	ptr--;
-	while (*ptr == SPACE_CHAR or *ptr == LINEBREAK_CHAR or *ptr == TAB_CHAR) ptr--;
+	while (*ptr == SPACE_CHAR or *ptr == LINEBREAK_CHAR or *ptr == TAB_CHAR) {
+		if (*ptr == '=') return NULL;
+		ptr--;
+	}
 	while (*ptr != SPACE_CHAR and *ptr != LINEBREAK_CHAR and *ptr != TAB_CHAR and *ptr != ASTERISK_CHAR) ptr--;
 	return ++ptr;
 }
 
 char *flush_normalized_function_type (char *function_name_ptr, char *top_break) {
 	char *flying_pointer = function_name_ptr;
-	while (*flying_pointer != '>' and *flying_pointer != ';' and *flying_pointer != '}'
-		   and flying_pointer != top_break and *flying_pointer != '#') flying_pointer--;
+	while (flying_pointer != top_break and *flying_pointer != '>' and *flying_pointer != ';' and *flying_pointer != '}'
+		   and *flying_pointer != '#') flying_pointer--;
 	if (*flying_pointer == '#') flying_pointer = strchr(flying_pointer, LINEBREAK_CHAR);
 
 	char space_flag = 1;
 	while (++flying_pointer != function_name_ptr) {
+		if (flying_pointer >= function_name_ptr) return NULL;
 		if (*flying_pointer == ASTERISK_CHAR) break; //let's handle asterisks inside separated loop
 		if (*flying_pointer != SPACE_CHAR and *flying_pointer != LINEBREAK_CHAR and *flying_pointer != TAB_CHAR) {
 			put_to_mem(*flying_pointer); space_flag = 0;
@@ -23,6 +36,7 @@ char *flush_normalized_function_type (char *function_name_ptr, char *top_break) 
 			}
 		}
 	}
+
 	if (*flying_pointer == ASTERISK_CHAR) {
 		if (space_flag == 0) put_to_mem(SPACE_CHAR); //put space char if we haven't one
 		put_to_mem(*flying_pointer);

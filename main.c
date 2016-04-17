@@ -70,30 +70,34 @@ int main(int argc, char **argv) {
 		}
 		cache.fileptr = try_readonly_mmap(cache.fd, cache.filesize);
 		cache.doc_block_ending = cache.fileptr;
-
+		//loop below will iterate over one file
 		while (forever) {
+			//we going to detect key pointers, which will be used for fill in doc data
 			cache.above_word = strstr(cache.doc_block_ending, search_above_string);
 			if (cache.above_word == NULL or cache.above_word > cache.fileptr + cache.filesize) {
 				erase_area(&doc_cache, sizeof(doc_cache));
 				break;
 			}
 
-			cache.round_bracket = strchr_backward(cache.above_word, ROUND_BRACKET_CHAR, cache.doc_block_ending);
-			if (cache.round_bracket <= cache.doc_block_ending) {
+			cache.round_bracket = check_round_bracket_before_above_word(cache.above_word, cache.doc_block_ending);
+			if (cache.round_bracket <= cache.doc_block_ending or cache.round_bracket == NULL) {
 				erase_area(&doc_cache, sizeof(doc_cache));
 				break;
 			}
 
 			cache.function_name = find_function_name_behind_round_bracket(cache.round_bracket);
-			if (cache.function_name <= cache.doc_block_ending) {
+			if (cache.function_name <= cache.doc_block_ending or cache.function_name == NULL) {
 				erase_area(&doc_cache, sizeof(doc_cache));
 				break;
 			}
 
+			//now we're ready. Time to prepare possible doc structure. Every stringlike record from doc structure
+			//contains only seek. So, pointer to real data is 'storage+seek'
 			doc_cache.arg_count = 0;
 			doc_cache.desc = 0;
 			doc_cache.infinity_arg = 0;
 
+			//before flushing data to storage we need to set seek to current
 			doc_cache.return_type = storage_current;
 			if (flush_normalized_function_type(cache.function_name, cache.doc_block_ending) == NULL) {
 				erase_area(&doc_cache, sizeof(doc_cache));
@@ -121,7 +125,7 @@ int main(int argc, char **argv) {
 			put_to_doc(&doc_cache);
 			erase_area(&doc_cache, sizeof(doc_cache));
 		}
-
+		munmap(cache.fileptr, cache.filesize); //should we care about success/failure munmap?
 		iterator++;
 	}
 
@@ -139,6 +143,11 @@ int main(int argc, char **argv) {
 				   storage+(doc_references+iterator)->desc, storage+(doc_references+iterator)->arg_desc );
 			iterator++;
 		}
+
+	//let's free our memory
+
+	free(doc_references);
+	free(storage);
 
 	return EXIT_SUCCESS;
 }

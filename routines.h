@@ -17,33 +17,6 @@ char strpartcmp(char *str, char *part) {
 	}
 }
 
-char *strchr_backward (char *position, const char c, const char *s) {
-	//above let's test comments here. HUEHUEHUE
-	// returns a pointer to the       first occurrence of the character c before *position in the string *s,
-	//or NULL pointer if no character found
-	//1 - pointer to starting character
-	//2 - search character
-	//3 - pointer to first character of string
-	while (forever) {
-		if (position < s) return NULL;
-		if (*position == c) return position;
-		position--;
-	}
-}
-
-char *strchr_double_backward (char *position, const char c, const char z, const char *s) {
-	//above
-	//returns a pointer to the first occurrence of the character c before *position in the string *s, or NULL pointer if no character found
-	//1 - pointer to starting character
-	//2 - search character
-	//3 - pointer to first character of string
-	while (forever) {
-		if (position < s) return NULL;
-		if (*position == c or *position == z) return position;
-		position--;
-	}
-}
-
 size_t get_file_size(int fd) {
 	struct stat sb;
 	if (fstat(fd, &sb) < 0) {
@@ -55,12 +28,12 @@ size_t get_file_size(int fd) {
 
 char *try_readonly_mmap(int file_descriptor, size_t file_size) {
 	if (file_descriptor < 0) return NULL;
-	void* mmap_result = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, file_descriptor, 0);
+	char* mmap_result = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, file_descriptor, 0);
 	if (mmap_result == MAP_FAILED) {
 		perror("mmap()");
 		exit(EXIT_FAILURE);
 	}
-	return (char *) mmap_result;
+	return mmap_result;
 }
 
 void flush_string_to_mem_storage (const char *string) {
@@ -118,6 +91,7 @@ unsigned int parse_cli_and_prepare_file_list(int *argc, char **argv) {
 		flush_string_to_mem_storage(dname);
 		file_count++;
 	}
+	closedir(dir_stream);
 	return file_count;
 }
 
